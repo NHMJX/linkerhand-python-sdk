@@ -336,7 +336,7 @@ class LinkerHandApi:
     def show_fun_table(self):
         self.hand.show_fun_table()
     def close_can(self):
-        self.open_can.close_can0()                         
+        self.hand.close_can_interface()                        
 
 if __name__ == "__main__":
     hand = LinkerHandApi(hand_type="right", hand_joint="L10")

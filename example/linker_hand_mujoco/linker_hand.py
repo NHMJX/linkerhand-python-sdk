@@ -6,7 +6,7 @@ import mujoco.viewer
 from PyQt5.QtWidgets import QApplication, QWidget, QSlider, QVBoxLayout, QLabel
 from PyQt5.QtCore import Qt
 
-XML_PATH = "urdf/linker_hand_l10_left/linker_hand_l10_left.xml"
+XML_PATH = r"example\linker_hand_mujoco\urdf\linker_hand_l10_left\linker_hand_l10_left.xml"
 
 # --- 加载模型 ---
 model = mujoco.MjModel.from_xml_path(XML_PATH)
