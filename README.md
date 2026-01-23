@@ -34,6 +34,50 @@ $ cd linkerhand-python-sdk/
 $ pip3 install -r requirements.txt
 ```
 
+## Windows Service Deployment
+
+For Windows users who want to deploy LinkerHand as a system service, see the [deployment documentation](deployment/README.md).
+
+### Quick Start
+```bash
+# Navigate to deployment directory
+cd deployment/windows
+
+# Build and install service
+python deploy_windows.py
+
+# Or use batch file (run as administrator)
+deploy_windows.bat
+```
+
+### Remote Deployment
+```bash
+# Create deployment package
+python create_deployment_package.py
+
+# Deploy to remote machine (PowerShell)
+.\remote_deploy.ps1 -ComputerName "REMOTE-PC" -PackagePath ".\LinkerHand_Deployment_Package.zip"
+```
+
+### Service Management
+```bash
+# Check service status
+sc query LinkerHandHTTPAPI
+
+# Start service
+sc start LinkerHandHTTPAPI
+
+# Stop service
+sc stop LinkerHandHTTPAPI
+
+# Uninstall service
+python install_service.py uninstall
+```
+
+**API Access:** http://localhost:8000/docs
+
+See [deployment/windows/WINDOWS_DEPLOYMENT.md](deployment/windows/WINDOWS_DEPLOYMENT.md) and [deployment/windows/REMOTE_DEPLOYMENT.md](deployment/windows/REMOTE_DEPLOYMENT.md) for detailed instructions.
+
 - 快速使用示例 by CAN
 Edit the config/setting.yaml configuration file and modify the parameters according to the comments inside. Set CAN:"can0" and Set MODBUS: "None"
 ```bash
