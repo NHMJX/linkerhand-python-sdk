@@ -206,14 +206,104 @@ curl -X POST http://localhost:5000/finger_move \
   -d '{"positions": [120, 90, 120, 70, 50, 40]}'
 ```
 
+## C++ 项目结构建议
+
+为了更好地组织C++代码，建议使用以下项目结构：
+
+```
+your_project/
+├── include/
+│   ├── linker_hand_client.h          # libcurl版本头文件
+│   └── linker_hand_client_rest.h     # cpprestsdk版本头文件
+├── src/
+│   ├── linker_hand_client.cpp        # libcurl版本实现
+│   ├── linker_hand_client_rest.cpp   # cpprestsdk版本实现
+│   └── main.cpp                      # 主程序
+├── CMakeLists.txt                    # 构建配置
+└── README.md
+```
+
+**CMakeLists.txt 示例**
+```cmake
+cmake_minimum_required(VERSION 3.10)
+project(LinkerHandClient)
+
+set(CMAKE_CXX_STANDARD 17)
+
+# 查找依赖
+find_package(CURL REQUIRED)
+find_package(cpprestsdk REQUIRED)
+
+# 包含目录
+include_directories(include)
+
+# 可执行文件
+add_executable(linker_hand_client_libcurl
+    src/main.cpp
+    src/linker_hand_client.cpp
+)
+
+add_executable(linker_hand_client_rest
+    src/main.cpp
+    src/linker_hand_client_rest.cpp
+)
+
+# 链接库
+target_link_libraries(linker_hand_client_libcurl CURL::libcurl)
+target_link_libraries(linker_hand_client_rest cpprestsdk::cpprest)
+```
+
 ### C++ HTTP客户端示例
 
 #### 使用libcurl
 
+**linker_hand_client.h**
 ```cpp
+#ifndef LINKER_HAND_CLIENT_H
+#define LINKER_HAND_CLIENT_H
+
+#include <string>
+
+class LinkerHandClient {
+public:
+    LinkerHandClient(const std::string& baseUrl);
+    ~LinkerHandClient();
+
+    // 握笔动作
+    std::string holdPen();
+
+    // 打开手部
+    std::string openHand();
+
+    // 关闭手部
+    std::string closeHand();
+
+    // 设置速度
+    std::string setSpeed(const std::vector<int>& speeds);
+
+    // 设置力矩
+    std::string setTorque(const std::vector<int>& torques);
+
+    // 移动手指
+    std::string fingerMove(const std::vector<int>& positions);
+
+private:
+    std::string sendPostRequest(const std::string& endpoint, const std::string& jsonData = "");
+    std::string baseUrl_;
+};
+
+#endif // LINKER_HAND_CLIENT_H
+```
+
+**linker_hand_client.cpp**
+```cpp
+#include "linker_hand_client.h"
 #include <curl/curl.h>
 #include <string>
 #include <iostream>
+#include <vector>
+#include <sstream>
+#include <cstdlib>  // for size_t
 
 // 回调函数处理响应
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
@@ -221,14 +311,22 @@ size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
     return size * nmemb;
 }
 
-// 发送POST请求的函数
-std::string sendPostRequest(const std::string& url, const std::string& jsonData = "") {
+LinkerHandClient::LinkerHandClient(const std::string& baseUrl) : baseUrl_(baseUrl) {
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+}
+
+LinkerHandClient::~LinkerHandClient() {
+    curl_global_cleanup();
+}
+
+std::string LinkerHandClient::sendPostRequest(const std::string& endpoint, const std::string& jsonData) {
     CURL* curl;
     CURLcode res;
     std::string readBuffer;
 
     curl = curl_easy_init();
     if(curl) {
+        std::string url = baseUrl_ + endpoint;
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_POST, 1L);
 
@@ -253,35 +351,76 @@ std::string sendPostRequest(const std::string& url, const std::string& jsonData 
     return readBuffer;
 }
 
-int main() {
-    // 初始化curl
-    curl_global_init(CURL_GLOBAL_DEFAULT);
+std::string LinkerHandClient::holdPen() {
+    return sendPostRequest("/hold_pen");
+}
 
+std::string LinkerHandClient::openHand() {
+    return sendPostRequest("/open_hand");
+}
+
+std::string LinkerHandClient::closeHand() {
+    return sendPostRequest("/close_hand");
+}
+
+std::string LinkerHandClient::setSpeed(const std::vector<int>& speeds) {
+    std::stringstream ss;
+    ss << R"({"speeds": [)";
+    for(size_t i = 0; i < speeds.size(); ++i) {
+        ss << speeds[i];
+        if(i < speeds.size() - 1) ss << ",";
+    }
+    ss << "]}";
+    return sendPostRequest("/set_speed", ss.str());
+}
+
+std::string LinkerHandClient::setTorque(const std::vector<int>& torques) {
+    std::stringstream ss;
+    ss << R"({"torques": [)";
+    for(size_t i = 0; i < torques.size(); ++i) {
+        ss << torques[i];
+        if(i < torques.size() - 1) ss << ",";
+    }
+    ss << "]}";
+    return sendPostRequest("/set_torque", ss.str());
+}
+
+std::string LinkerHandClient::fingerMove(const std::vector<int>& positions) {
+    std::stringstream ss;
+    ss << R"({"positions": [)";
+    for(size_t i = 0; i < positions.size(); ++i) {
+        ss << positions[i];
+        if(i < positions.size() - 1) ss << ",";
+    }
+    ss << "]}";
+    return sendPostRequest("/finger_move", ss.str());
+}
+
+// 使用示例
+int main() {
     // 注意：根据你使用的API框架修改端口号
     // FastAPI: localhost:8000
     // Flask: localhost:5000
-    const std::string baseUrl = "http://localhost:8000";  // 或 "http://localhost:5000"
+    LinkerHandClient client("http://localhost:8000");  // 或 "http://localhost:5000"
 
     // 握笔动作
-    std::string response = sendPostRequest(baseUrl + "/hold_pen");
+    std::string response = client.holdPen();
     std::cout << "Hold pen response: " << response << std::endl;
 
     // 打开手部
-    response = sendPostRequest(baseUrl + "/open_hand");
+    response = client.openHand();
     std::cout << "Open hand response: " << response << std::endl;
 
     // 设置速度
-    std::string speedData = R"({"speeds": [60, 60, 60, 60, 60, 60]})";
-    response = sendPostRequest(baseUrl + "/set_speed", speedData);
+    std::vector<int> speeds = {60, 60, 60, 60, 60, 60};
+    response = client.setSpeed(speeds);
     std::cout << "Set speed response: " << response << std::endl;
 
     // 移动手指
-    std::string moveData = R"({"positions": [120, 90, 120, 70, 50, 40]})";
-    response = sendPostRequest(baseUrl + "/finger_move", moveData);
+    std::vector<int> positions = {120, 90, 120, 70, 50, 40};
+    response = client.fingerMove(positions);
     std::cout << "Finger move response: " << response << std::endl;
 
-    // 清理curl
-    curl_global_cleanup();
     return 0;
 }
 ```
@@ -293,54 +432,149 @@ int main() {
 - macOS: `brew install cpprestsdk`
 - Windows: 通过vcpkg安装
 
+**linker_hand_client_rest.h**
 ```cpp
+#ifndef LINKER_HAND_CLIENT_REST_H
+#define LINKER_HAND_CLIENT_REST_H
+
+#include <string>
+#include <vector>
+
+class LinkerHandClientRest {
+public:
+    LinkerHandClientRest(const std::string& baseUrl);
+    ~LinkerHandClientRest() = default;
+
+    // 握笔动作
+    pplx::task<std::string> holdPen();
+
+    // 打开手部
+    pplx::task<std::string> openHand();
+
+    // 关闭手部
+    pplx::task<std::string> closeHand();
+
+    // 设置速度
+    pplx::task<std::string> setSpeed(const std::vector<int>& speeds);
+
+    // 设置力矩
+    pplx::task<std::string> setTorque(const std::vector<int>& torques);
+
+    // 移动手指
+    pplx::task<std::string> fingerMove(const std::vector<int>& positions);
+
+private:
+    web::http::client::http_client client_;
+};
+
+#endif // LINKER_HAND_CLIENT_REST_H
+```
+
+**linker_hand_client_rest.cpp**
+```cpp
+#include "linker_hand_client_rest.h"
 #include <cpprest/http_client.h>
 #include <cpprest/json.h>
 #include <iostream>
+#include <vector>
 
 using namespace web;
 using namespace web::http;
 using namespace web::http::client;
 
-int main() {
-    // 创建HTTP客户端
-    http_client client(U("http://localhost:8000"));
+LinkerHandClientRest::LinkerHandClientRest(const std::string& baseUrl)
+    : client_(U(baseUrl)) {
+}
 
+pplx::task<std::string> LinkerHandClientRest::holdPen() {
+    return client_.request(methods::POST, U("/hold_pen"))
+        .then([](http_response response) {
+            return response.extract_string();
+        });
+}
+
+pplx::task<std::string> LinkerHandClientRest::openHand() {
+    return client_.request(methods::POST, U("/open_hand"))
+        .then([](http_response response) {
+            return response.extract_string();
+        });
+}
+
+pplx::task<std::string> LinkerHandClientRest::closeHand() {
+    return client_.request(methods::POST, U("/close_hand"))
+        .then([](http_response response) {
+            return response.extract_string();
+        });
+}
+
+pplx::task<std::string> LinkerHandClientRest::setSpeed(const std::vector<int>& speeds) {
+    json::value speedJson;
+    json::value speedArray = json::value::array();
+    for(size_t i = 0; i < speeds.size(); i++) {
+        speedArray[i] = json::value(speeds[i]);
+    }
+    speedJson[U("speeds")] = speedArray;
+
+    return client_.request(methods::POST, U("/set_speed"), speedJson)
+        .then([](http_response response) {
+            return response.extract_string();
+        });
+}
+
+pplx::task<std::string> LinkerHandClientRest::setTorque(const std::vector<int>& torques) {
+    json::value torqueJson;
+    json::value torqueArray = json::value::array();
+    for(size_t i = 0; i < torques.size(); i++) {
+        torqueArray[i] = json::value(torques[i]);
+    }
+    torqueJson[U("torques")] = torqueArray;
+
+    return client_.request(methods::POST, U("/set_torque"), torqueJson)
+        .then([](http_response response) {
+            return response.extract_string();
+        });
+}
+
+pplx::task<std::string> LinkerHandClientRest::fingerMove(const std::vector<int>& positions) {
+    json::value moveJson;
+    json::value posArray = json::value::array();
+    for(size_t i = 0; i < positions.size(); i++) {
+        posArray[i] = json::value(positions[i]);
+    }
+    moveJson[U("positions")] = posArray;
+
+    return client_.request(methods::POST, U("/finger_move"), moveJson)
+        .then([](http_response response) {
+            return response.extract_string();
+        });
+}
+
+// 使用示例
+int main() {
     try {
+        LinkerHandClientRest client("http://localhost:8000");
+
         // 握笔动作
-        auto response = client.request(methods::POST, U("/hold_pen")).get();
-        std::cout << "Hold pen status: " << response.status_code() << std::endl;
-        std::cout << "Response: " << response.extract_string().get() << std::endl;
+        client.holdPen().then([](std::string response) {
+            std::cout << "Hold pen response: " << response << std::endl;
+        }).wait();
 
         // 打开手部
-        response = client.request(methods::POST, U("/open_hand")).get();
-        std::cout << "Open hand status: " << response.status_code() << std::endl;
-        std::cout << "Response: " << response.extract_string().get() << std::endl;
+        client.openHand().then([](std::string response) {
+            std::cout << "Open hand response: " << response << std::endl;
+        }).wait();
 
         // 设置速度
-        json::value speedJson;
-        json::value speedArray = json::value::array();
-        for(int i = 0; i < 6; i++) {
-            speedArray[i] = json::value(60);
-        }
-        speedJson[U("speeds")] = speedArray;
-
-        response = client.request(methods::POST, U("/set_speed"), speedJson).get();
-        std::cout << "Set speed status: " << response.status_code() << std::endl;
-        std::cout << "Response: " << response.extract_string().get() << std::endl;
+        std::vector<int> speeds = {60, 60, 60, 60, 60, 60};
+        client.setSpeed(speeds).then([](std::string response) {
+            std::cout << "Set speed response: " << response << std::endl;
+        }).wait();
 
         // 移动手指
-        json::value moveJson;
-        json::value posArray = json::value::array();
-        int positions[] = {120, 90, 120, 70, 50, 40};
-        for(int i = 0; i < 6; i++) {
-            posArray[i] = json::value(positions[i]);
-        }
-        moveJson[U("positions")] = posArray;
-
-        response = client.request(methods::POST, U("/finger_move"), moveJson).get();
-        std::cout << "Finger move status: " << response.status_code() << std::endl;
-        std::cout << "Response: " << response.extract_string().get() << std::endl;
+        std::vector<int> positions = {120, 90, 120, 70, 50, 40};
+        client.fingerMove(positions).then([](std::string response) {
+            std::cout << "Finger move response: " << response << std::endl;
+        }).wait();
 
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
