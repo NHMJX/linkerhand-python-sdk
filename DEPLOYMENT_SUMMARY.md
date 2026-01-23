@@ -228,4 +228,61 @@ tasklist /FI "IMAGENAME eq LinkerHand_HTTP_Service.exe" /V
 
 ---
 
-**🚀 现在就开始部署您的LinkerHand HTTP API服务吧！**
+## 🔧 打包问题故障排除
+
+### "makespec options not valid" 错误
+
+**问题原因：**
+- PyInstaller版本不兼容
+- spec文件格式错误
+- 缓存文件冲突
+
+**解决方案：**
+
+```bash
+# 方法1：清理后重新打包（推荐）
+python clean_and_build.py
+
+# 方法2：使用简化脚本
+python build_simple.py
+
+# 方法3：手动PyInstaller命令
+pyinstaller --onedir --name LinkerHand_HTTP_Service ^
+  --hidden-import LinkerHand.linker_hand_api ^
+  --hidden-import LinkerHand.core.can ^
+  --hidden-import LinkerHand.core.rs485 ^
+  --hidden-import LinkerHand.utils ^
+  --hidden-import can --hidden-import fastapi --hidden-import uvicorn ^
+  --add-data "LinkerHand;LinkerHand" ^
+  --noconsole ^
+  Demo/main_http.py
+```
+
+### 备选方案
+
+如果PyInstaller完全无法工作：
+
+1. **Python环境方式**（目标机器需要安装Python）:
+   ```batch
+   pip install -r requirements.txt
+   python Demo/main_http.py
+   ```
+
+2. **批处理服务包装器**:
+   ```batch
+   # 使用LinkerHand_HTTP_Service.bat
+   # 需要目标机器安装Python
+   ```
+
+### 常见PyInstaller问题
+
+| 错误信息 | 可能原因 | 解决方案 |
+|----------|----------|----------|
+| `makespec options not valid` | spec文件格式错误 | 使用命令行模式 |
+| `ModuleNotFoundError` | 缺少隐藏导入 | 添加 `--hidden-import` 参数 |
+| `No module named 'xxx'` | 依赖未找到 | 检查requirements.txt |
+| 打包文件过大 | 包含太多模块 | 使用 `--exclude-module` |
+
+---
+
+**🚀 现在就开始部署您的LinkerHand HTTP API服务吧！如果遇到打包问题，请按上面的故障排除步骤操作。** 🎉

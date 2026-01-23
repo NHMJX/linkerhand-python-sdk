@@ -13,51 +13,69 @@ def create_spec_file():
     """创建PyInstaller spec文件"""
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    spec_content = '''# -*- mode: python ; coding: utf-8 -*-
+    # 使用字典格式构建spec内容，避免字符串拼接问题
+    spec_lines = [
+        '# -*- mode: python ; coding: utf-8 -*-',
+        '',
+        'import os',
+        'import sys',
+        '',
+        f'project_root = r"{project_root}"',
+        '',
+        'datas = [',
+        '    (os.path.join(project_root, "LinkerHand"), "LinkerHand"),',
+        ']',
+        '',
+        'hiddenimports = [',
+        '    "LinkerHand.linker_hand_api",',
+        '    "LinkerHand.core.can",',
+        '    "LinkerHand.core.rs485",',
+        '    "LinkerHand.utils",',
+        '    "can",',
+        '    "can.interfaces.pcan",',
+        '    "minimalmodbus",',
+        '    "serial",',
+        '    "yaml",',
+        '    "fastapi",',
+        '    "uvicorn",',
+        '    "pydantic",',
+        '    "starlette",',
+        '    "win32api",',
+        '    "win32service",',
+        '    "win32serviceutil",',
+        '    "servicemanager",',
+        ']',
+        '',
+        'a = Analysis(',
+        '    ["Demo/main_http.py"],',
+        f'    pathex=[r"{project_root}"],',
+        '    binaries=[],',
+        '    datas=datas,',
+        '    hiddenimports=hiddenimports,',
+        '    hookspath=[],',
+        '    hooksconfig={},',
+        '    runtime_hooks=[],',
+        '    excludes=[],',
+        '    noarchive=False,',
+        ')',
+        '',
+        'pyz = PYZ(a.pure, a.zipped_data)',
+        '',
+        'exe = EXE(',
+        '    pyz,',
+        '    a.scripts,',
+        '    a.binaries,',
+        '    a.zipfiles,',
+        '    a.datas,',
+        '    [],',
+        '    name="LinkerHand_HTTP_Service",',
+        '    debug=False,',
+        '    console=False,',
+        '    upx=True,',
+        ')'
+    ]
 
-import os
-import sys
-
-project_root = r"''' + project_root + '''"
-
-datas = [
-    (os.path.join(project_root, "LinkerHand"), "LinkerHand"),
-]
-
-hiddenimports = [
-    "LinkerHand.linker_hand_api",
-    "LinkerHand.core.can",
-    "LinkerHand.core.rs485",
-    "LinkerHand.utils",
-    "can", "can.interfaces.pcan", "minimalmodbus", "serial", "yaml",
-    "fastapi", "uvicorn", "pydantic", "starlette",
-    "win32api", "win32service", "win32serviceutil", "servicemanager",
-]
-
-a = Analysis(
-    ["Demo/main_http.py"],
-    pathex=[project_root],
-    binaries=[],
-    datas=datas,
-    hiddenimports=hiddenimports,
-    excludes=["tkinter", "matplotlib", "numpy", "PIL", "PyQt5", "IPython"],
-)
-
-pyz = PYZ(a.pure, a.zipped_data, cipher=None)
-
-exe = EXE(
-    pyz,
-    a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    [],
-    name="LinkerHand_HTTP_Service",
-    debug=False,
-    console=False,
-    upx=True,
-)
-'''
+    spec_content = '\n'.join(spec_lines)
 
     spec_file = Path("linker_hand_standalone.spec")
     with open(spec_file, 'w', encoding='utf-8') as f:
@@ -68,31 +86,109 @@ exe = EXE(
 def run_pyinstaller():
     """运行PyInstaller打包"""
     print("正在打包独立exe文件...")
+    print("注意：如果spec文件有问题，请使用 build_simple.py")
 
-    cmd = [
-        sys.executable, "-m", "PyInstaller",
-        "--clean",
-        "--noconfirm",
-        "--onedir",
-        "linker_hand_standalone.spec"
-    ]
-
-    print(f"执行命令: {' '.join(cmd)}")
-    result = subprocess.run(cmd, capture_output=True, text=True)
-
-    if result.returncode == 0:
-        print("✓ 打包成功完成!")
-        exe_path = Path("dist/LinkerHand_HTTP_Service.exe")
-        if exe_path.exists():
-            exe_size = exe_path.stat().st_size / (1024 * 1024)
-            print(f"✓ 生成exe文件大小: {exe_size:.1f}MB")
-            return True
-        else:
-            print("✗ exe文件未找到")
-            return False
+    # 首先尝试使用spec文件
+    spec_file = Path("linker_hand_standalone.spec")
+    if spec_file.exists():
+        cmd = [
+            sys.executable, "-m", "PyInstaller",
+            "--clean",
+            "--noconfirm",
+            str(spec_file)
+        ]
     else:
-        print("✗ 打包失败:")
-        print(result.stderr)
+        print("未找到spec文件，使用命令行模式...")
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+        cmd = [
+            sys.executable, "-m", "PyInstaller",
+            "--onedir",
+            "--name", "LinkerHand_HTTP_Service",
+            "--hidden-import", "LinkerHand.linker_hand_api",
+            "--hidden-import", "LinkerHand.core.can",
+            "--hidden-import", "LinkerHand.core.rs485",
+            "--hidden-import", "LinkerHand.utils",
+            "--hidden-import", "can",
+            "--hidden-import", "can.interfaces.pcan",
+            "--hidden-import", "minimalmodbus",
+            "--hidden-import", "serial",
+            "--hidden-import", "yaml",
+            "--hidden-import", "fastapi",
+            "--hidden-import", "uvicorn",
+            "--hidden-import", "pydantic",
+            "--hidden-import", "starlette",
+            "--hidden-import", "win32api",
+            "--hidden-import", "win32service",
+            "--hidden-import", "win32serviceutil",
+            "--hidden-import", "servicemanager",
+            "--add-data", f"{os.path.join(project_root, 'LinkerHand')};LinkerHand",
+            "--noconsole",
+            "Demo/main_http.py"
+        ]
+
+    print("执行PyInstaller命令...")
+    print("如果遇到spec文件错误，请使用: python build_simple.py")
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=900)  # 15分钟超时
+
+        if result.returncode == 0:
+            print("✓ 打包成功完成!")
+
+            # 查找生成的exe文件
+            exe_paths = [
+                Path("dist/LinkerHand_HTTP_Service.exe"),
+                Path("dist/LinkerHand_HTTP_Service/LinkerHand_HTTP_Service.exe")
+            ]
+
+            exe_found = None
+            for exe_path in exe_paths:
+                if exe_path.exists():
+                    exe_found = exe_path
+                    break
+
+            if exe_found:
+                exe_size = exe_found.stat().st_size / (1024 * 1024)
+                print(f"✓ 生成exe文件: {exe_found}")
+                print(".1f"
+                # 如果是目录模式，复制exe到根目录
+                if exe_found.parent.name == "LinkerHand_HTTP_Service":
+                    target_path = Path("dist/LinkerHand_HTTP_Service.exe")
+                    import shutil
+                    shutil.copy2(exe_found, target_path)
+                    print(f"✓ 已复制到根目录: {target_path}")
+
+                return True
+            else:
+                print("✗ exe文件未找到")
+                print("dist目录内容:")
+                if Path("dist").exists():
+                    for item in Path("dist").iterdir():
+                        print(f"  - {item}")
+                return False
+        else:
+            print("✗ 打包失败")
+            print("\n可能的解决方案:")
+            print("1. 使用简化脚本: python build_simple.py")
+            print("2. 检查PyInstaller版本兼容性")
+            print("3. 尝试删除__pycache__目录后重试")
+
+            print("\n详细错误信息:")
+            if result.stderr:
+                print("STDERR:", result.stderr[-1500:])  # 显示最后1500字符
+            if result.stdout:
+                print("STDOUT:", result.stdout[-500:])   # 显示最后500字符
+
+            return False
+
+    except subprocess.TimeoutExpired:
+        print("✗ 打包超时（15分钟）")
+        print("建议使用 build_simple.py 进行简化打包")
+        return False
+    except Exception as e:
+        print(f"✗ 打包过程中出错: {e}")
+        print("建议使用 build_simple.py 进行简化打包")
         return False
 
 def create_service_wrapper():
