@@ -24,4 +24,4 @@ pydantic
 
 # Windows打包和服务相关
 PyInstaller
-pywin32
+pywin32; sys_platform == "win32"

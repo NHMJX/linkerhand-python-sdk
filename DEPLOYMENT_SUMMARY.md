@@ -258,6 +258,35 @@ pyinstaller --onedir --name LinkerHand_HTTP_Service ^
   Demo/main_http.py
 ```
 
+### Windows环境专用解决方案
+
+如果在Windows环境下遇到路径问题：
+
+1. **使用专用Windows打包脚本**:
+   ```batch
+   # 在Windows环境下运行
+   build_windows.bat
+   ```
+
+2. **使用快速打包命令**:
+   ```batch
+   # 如果专用脚本仍有问题
+   quick_build.bat
+   ```
+
+3. **手动PyInstaller命令**（确保路径正确）:
+   ```batch
+   pyinstaller --onedir --name LinkerHand_HTTP_Service ^
+     --hidden-import LinkerHand.linker_hand_api ^
+     --hidden-import LinkerHand.core.can ^
+     --hidden-import LinkerHand.core.rs485 ^
+     --hidden-import LinkerHand.utils ^
+     --hidden-import can --hidden-import fastapi --hidden-import uvicorn ^
+     --add-data "LinkerHand;LinkerHand" ^
+     --noconsole ^
+     Demo/main_http.py
+   ```
+
 ### 备选方案
 
 如果PyInstaller完全无法工作：

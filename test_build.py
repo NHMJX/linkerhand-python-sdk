@@ -47,7 +47,7 @@ def test_build_result():
             print(f"\n⚠️  exe文件较小 ({size_mb:.1f}MB)，可能是占位符文件")
             print("   建议重新运行打包脚本生成真正的exe文件")
         else:
-            print(".1f"
+            print(".1f")
     print("\n✅ 所有文件检查通过!")
     print("\n📦 部署说明:")
     print("1. 复制整个 dist/ 目录到目标Windows机器")

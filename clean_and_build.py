@@ -122,7 +122,9 @@ def build_minimal():
             exe_path = Path("dist/LinkerHand_HTTP_Service.exe")
             if exe_path.exists():
                 exe_size = exe_path.stat().st_size / (1024 * 1024)
-                print("✓ 最小化打包成功!"                print(".1f"                return True
+                print("✓ 最小化打包成功!")
+                print(".1f")
+                return True
             else:
                 print("✗ exe文件未生成")
                 return False

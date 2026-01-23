@@ -57,7 +57,8 @@ def run_simple_build():
             if exe_path.exists():
                 exe_size = exe_path.stat().st_size / (1024 * 1024)
                 print(f"✓ 生成exe文件: {exe_path}")
-                print(".1f"                return True
+                print(".1f")
+                return True
             else:
                 print("✗ exe文件未生成")
                 return False

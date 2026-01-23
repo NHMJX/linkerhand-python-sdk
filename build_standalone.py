@@ -151,7 +151,7 @@ def run_pyinstaller():
             if exe_found:
                 exe_size = exe_found.stat().st_size / (1024 * 1024)
                 print(f"✓ 生成exe文件: {exe_found}")
-                print(".1f"
+                print(".1f")
                 # 如果是目录模式，复制exe到根目录
                 if exe_found.parent.name == "LinkerHand_HTTP_Service":
                     target_path = Path("dist/LinkerHand_HTTP_Service.exe")
