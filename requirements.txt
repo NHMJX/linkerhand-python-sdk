@@ -19,3 +19,9 @@ pyqtgraph
 dm_control
 uvicorn
 matplotlib
+fastapi
+pydantic
+
+# Windows打包和服务相关
+PyInstaller
+pywin32
