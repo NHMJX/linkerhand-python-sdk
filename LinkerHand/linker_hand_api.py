@@ -1,11 +1,35 @@
 #!/usr/bin/env python3 
 # -*- coding: utf-8 -*-
 import sys, os, time,threading
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from utils.mapping import *
-from utils.color_msg import ColorMsg
-from utils.load_write_yaml import LoadWriteYaml
-from utils.open_can import OpenCan
+
+# 修复打包后的导入路径问题
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+if _current_dir not in sys.path:
+    sys.path.insert(0, _current_dir)
+
+# 尝试不同的导入方式，兼容打包前后的环境
+try:
+    # 优先尝试相对导入（开发环境）
+    from utils.mapping import *
+    from utils.color_msg import ColorMsg
+    from utils.load_write_yaml import LoadWriteYaml
+    from utils.open_can import OpenCan
+except ImportError:
+    # 如果相对导入失败，尝试绝对导入（打包环境）
+    try:
+        from LinkerHand.utils.mapping import *
+        from LinkerHand.utils.color_msg import ColorMsg
+        from LinkerHand.utils.load_write_yaml import LoadWriteYaml
+        from LinkerHand.utils.open_can import OpenCan
+    except ImportError:
+        # 最后尝试从当前目录导入
+        _utils_dir = os.path.join(_current_dir, 'utils')
+        if _utils_dir not in sys.path:
+            sys.path.insert(0, _utils_dir)
+        from mapping import *
+        from color_msg import ColorMsg
+        from load_write_yaml import LoadWriteYaml
+        from open_can import OpenCan
 
 class LinkerHandApi:
     def __init__(self, hand_type="left", hand_joint="L10", modbus = "None",can="can0"):  # Ubuntu:can0   win:PCAN_USBBUS1
