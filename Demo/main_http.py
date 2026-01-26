@@ -7,6 +7,8 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
+import subprocess
+import threading
 
 # 添加项目根目录到Python路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -88,6 +90,14 @@ class TorqueRequest(BaseModel):
 
 class FingerMoveRequest(BaseModel):
     positions: List[int]
+
+class ExecuteExeRequest(BaseModel):
+    timeout: Optional[int] = 300  # 超时时间（秒），默认5分钟
+    wait: Optional[bool] = True  # 是否等待程序执行完成，False为异步执行
+
+# 配置固定的.exe程序路径和参数（请根据实际情况修改）
+FIXED_EXE_PATH = r"C:\path\to\your\program.exe"  # 请修改为实际的.exe程序路径
+FIXED_EXE_ARGS = ["robot"]  # 固定的命令行参数
 
 # 全局变量存储手部实例
 hand_instance = None
@@ -225,21 +235,162 @@ async def finger_move(request: FingerMoveRequest):
         logger.error(f"移动手指失败: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"移动手指失败: {str(e)}")
 
+
 @app.get("/health")
 async def health_check():
     """健康检查"""
     return {"status": "healthy"}
 
+# ==================== 第二个服务：执行.exe程序的服务 ====================
+
+# 创建第二个FastAPI应用（用于执行.exe程序）
+exe_app = FastAPI(
+    title="Exe Executor API",
+    description="执行本地.exe程序的HTTP API服务",
+    version="1.0.0"
+)
+
+@exe_app.get("/")
+async def exe_root():
+    """根路径，返回API信息"""
+    return {
+        "message": "Exe Executor API 服务运行中",
+        "version": "1.0.0",
+        "exe_path": FIXED_EXE_PATH,
+        "exe_args": FIXED_EXE_ARGS,
+        "endpoints": {
+            "/execute": "执行本地.exe程序（POST，固定参数：robot）",
+            "/health": "健康检查"
+        }
+    }
+
+@exe_app.post("/execute")
+async def execute_exe(request: ExecuteExeRequest):
+    """执行本地.exe程序（使用固定路径和固定参数）"""
+    try:
+        logger.info(f"收到执行程序请求，固定参数: {FIXED_EXE_ARGS}")
+        
+        # 检查文件是否存在
+        if not os.path.exists(FIXED_EXE_PATH):
+            error_msg = f"程序文件不存在: {FIXED_EXE_PATH}"
+            logger.error(error_msg)
+            raise HTTPException(status_code=404, detail=error_msg)
+        
+        # 检查是否为.exe文件
+        if not FIXED_EXE_PATH.lower().endswith('.exe'):
+            error_msg = f"文件不是.exe格式: {FIXED_EXE_PATH}"
+            logger.error(error_msg)
+            raise HTTPException(status_code=400, detail=error_msg)
+        
+        # 构建命令（使用固定参数）
+        cmd = [FIXED_EXE_PATH] + FIXED_EXE_ARGS
+        
+        if request.wait:
+            # 同步执行，等待程序完成
+            logger.info(f"同步执行程序: {' '.join(cmd)}")
+            try:
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=request.timeout,
+                    encoding='utf-8',
+                    errors='ignore'
+                )
+                
+                logger.info(f"程序执行完成，返回码: {result.returncode}")
+                logger.info(f"标准输出: {result.stdout[:500]}")  # 只记录前500字符
+                if result.stderr:
+                    logger.warning(f"标准错误: {result.stderr[:500]}")
+                
+                return {
+                    "status": "success",
+                    "message": "程序执行完成",
+                    "return_code": result.returncode,
+                    "stdout": result.stdout,
+                    "stderr": result.stderr
+                }
+            except subprocess.TimeoutExpired:
+                error_msg = f"程序执行超时（超过{request.timeout}秒）"
+                logger.error(error_msg)
+                raise HTTPException(status_code=408, detail=error_msg)
+        else:
+            # 异步执行，不等待程序完成
+            logger.info(f"异步执行程序: {' '.join(cmd)}")
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                encoding='utf-8',
+                errors='ignore'
+            )
+            
+            logger.info(f"程序已启动，PID: {process.pid}")
+            return {
+                "status": "success",
+                "message": "程序已启动（异步执行）",
+                "pid": process.pid
+            }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = f"执行程序失败: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        raise HTTPException(status_code=500, detail=error_msg)
+
+@exe_app.get("/health")
+async def exe_health_check():
+    """健康检查"""
+    return {
+        "status": "healthy", 
+        "exe_path": FIXED_EXE_PATH,
+        "exe_args": FIXED_EXE_ARGS
+    }
+
+def run_exe_server():
+    """在独立线程中运行.exe执行服务"""
+    logger.info("=" * 60)
+    logger.info("Exe Executor API 服务启动")
+    logger.info(f"服务地址: http://0.0.0.0:8001")
+    logger.info(f"程序路径: {FIXED_EXE_PATH}")
+    logger.info(f"固定参数: {FIXED_EXE_ARGS}")
+    logger.info("=" * 60)
+    
+    try:
+        uvicorn.run(
+            exe_app,
+            host="0.0.0.0",
+            port=8001,
+            reload=False,
+            log_level="info",
+            access_log=True,
+            log_config=None  # 使用我们自己的日志配置
+        )
+    except Exception as e:
+        logger.error(f"Exe Executor服务启动失败: {str(e)}", exc_info=True)
+    finally:
+        logger.info("Exe Executor API 服务已停止")
+
 if __name__ == "__main__":
-    # 启动服务器
-    # 使用app对象而不是字符串，确保打包后能正常运行
+    # 启动两个服务器
+    # 1. LinkerHand API 服务（端口8000）
+    # 2. Exe Executor 服务（端口8001）
+    
     logger.info("=" * 60)
     logger.info("LinkerHand HTTP API 服务启动")
     logger.info(f"服务地址: http://0.0.0.0:8000")
     logger.info(f"日志文件: {log_file_path}")
     logger.info("=" * 60)
     
+    # 在后台线程中启动第二个服务（执行.exe程序的服务）
+    exe_thread = threading.Thread(target=run_exe_server, daemon=True)
+    exe_thread.start()
+    logger.info("Exe Executor服务已在后台线程中启动（端口8001）")
+    
     try:
+        # 主线程运行LinkerHand API服务
         uvicorn.run(
             app,
             host="0.0.0.0",
