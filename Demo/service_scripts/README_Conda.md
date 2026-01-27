@@ -8,6 +8,8 @@
 
 - **`start_service_conda.bat`** - 启动服务（Conda环境，后台运行，支持开机自启动）
 - **`start_service_conda_window.bat`** - 启动服务（Conda环境，显示窗口，可查看日志）
+- **`start_service_debug.bat`** - 调试启动服务（详细诊断信息，推荐用于排查问题）
+- **`start_service_simple.bat`** - 简化启动服务（使用系统Python，跳过Conda环境）
 - **`stop_service.bat`** - 停止正在运行的服务
 - **`install_autostart_conda.bat`** - 安装开机自启动配置（需要管理员权限）
 - **`uninstall_autostart.bat`** - 卸载开机自启动配置（需要管理员权限）
@@ -36,6 +38,8 @@
 
 - **启动服务**：双击 `start_service_conda.bat`（后台运行）
 - **启动服务（查看日志）**：双击 `start_service_conda_window.bat`
+- **调试启动**：双击 `start_service_debug.bat`（详细诊断信息）
+- **简化启动**：双击 `start_service_simple.bat`（使用系统Python）
 - **停止服务**：双击 `stop_service.bat`
 
 ## 📋 详细步骤
@@ -95,6 +99,23 @@ set "USE_BASE_IF_EMPTY=0"
 5. **管理员权限**：安装/卸载开机自启动需要管理员权限
 
 ## 🐛 故障排除
+
+### 快速诊断
+
+如果遇到启动问题，建议按以下顺序尝试：
+
+1. **使用调试脚本**：
+   - 双击 `start_service_debug.bat`
+   - 查看详细的诊断信息
+   - 根据错误信息进行修复
+
+2. **使用简化脚本**：
+   - 双击 `start_service_simple.bat`
+   - 跳过Conda环境，直接使用系统Python
+
+3. **检查环境**：
+   - 确认Python已安装：`python --version`
+   - 确认依赖包已安装：`pip list`
 
 ### 服务无法启动
 

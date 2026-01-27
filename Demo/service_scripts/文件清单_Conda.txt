@@ -4,13 +4,15 @@ Conda环境服务脚本文件清单
 
 📁 位置: Demo/service_scripts/
 
-📄 脚本文件 (共5个)
+📄 脚本文件 (共7个)
 -------------------
 1. start_service_conda.bat          - 启动服务（Conda环境，后台运行，支持开机自启动）
 2. start_service_conda_window.bat  - 启动服务（Conda环境，显示窗口，可查看日志）
-3. stop_service.bat                 - 停止服务（通用）
-4. install_autostart_conda.bat     - 安装开机自启动（Conda环境专用）
-5. uninstall_autostart.bat         - 卸载开机自启动（通用）
+3. start_service_debug.bat          - 调试启动服务（详细诊断信息，推荐用于排查问题）
+4. start_service_simple.bat         - 简化启动服务（使用系统Python，跳过Conda环境）
+5. stop_service.bat                 - 停止服务（通用）
+6. install_autostart_conda.bat     - 安装开机自启动（Conda环境专用）
+7. uninstall_autostart.bat         - 卸载开机自启动（通用）
 
 📄 说明文件 (共4个)
 -------------------
