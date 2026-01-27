@@ -6,41 +6,38 @@
 
 ### 脚本文件
 
-- **`start_service_conda.bat`** - 启动服务（Conda环境，后台运行，支持开机自启动）
-- **`start_service_conda_window.bat`** - 启动服务（Conda环境，显示窗口，可查看日志）
-- **`start_service_debug.bat`** - 调试启动服务（详细诊断信息，推荐用于排查问题）
-- **`start_service_simple.bat`** - 简化启动服务（使用系统Python，跳过Conda环境）
+- **`start_service_interactive.bat`** - 交互式启动服务（推荐使用，提供多种启动选项）
 - **`stop_service.bat`** - 停止正在运行的服务
 - **`install_autostart_conda.bat`** - 安装开机自启动配置（需要管理员权限）
 - **`uninstall_autostart.bat`** - 卸载开机自启动配置（需要管理员权限）
+- **`start_service_debug.bat`** - 调试启动服务（问题排查用）
+- **`test_script.bat`** - 脚本测试工具（验证环境）
 
 ## 🚀 快速开始
 
 ### 首次使用
 
-1. **配置Conda环境名**
-   - 打开 `start_service_conda.bat`
-   - 找到第10行：`set "CONDA_ENV_NAME="`
-   - 修改为您的Conda环境名，例如：`set "CONDA_ENV_NAME=myenv"`
-   - 保存文件
+1. **测试脚本环境**
+   - 双击 `test_script.bat`
+   - 确认能看到彩色输出框和"Hello World!"
+   - 如果看不到输出，说明脚本执行有问题
 
-2. **测试服务**
-   - 双击 `start_service_conda_window.bat`
-   - 查看服务是否正常启动
-   - 访问 `http://localhost:8000` 验证
+2. **启动服务**
+   - 双击 `start_service_interactive.bat`
+   - 选择启动模式（推荐选择1，后台启动）
+   - 等待启动完成提示
 
-3. **配置开机自启动**（可选）
+3. **配置开机自启动**
    - 右键点击 `install_autostart_conda.bat`
    - 选择"以管理员身份运行"
    - 按照提示完成安装
 
 ### 日常使用
 
-- **启动服务**：双击 `start_service_conda.bat`（后台运行）
-- **启动服务（查看日志）**：双击 `start_service_conda_window.bat`
-- **调试启动**：双击 `start_service_debug.bat`（详细诊断信息）
-- **简化启动**：双击 `start_service_simple.bat`（使用系统Python）
+- **启动服务**：双击 `start_service_interactive.bat`（交互式选择启动模式）
 - **停止服务**：双击 `stop_service.bat`
+- **调试问题**：双击 `start_service_debug.bat`（遇到问题时使用）
+- **测试环境**：双击 `test_script.bat`（验证脚本执行环境）
 
 ## 📋 详细步骤
 
