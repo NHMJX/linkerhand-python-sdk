@@ -21,7 +21,3 @@ uvicorn
 matplotlib
 fastapi
 pydantic
-
-# Windows打包和服务相关
-PyInstaller
-pywin32; sys_platform == "win32"
