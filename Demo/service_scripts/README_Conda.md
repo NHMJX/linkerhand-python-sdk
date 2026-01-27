@@ -104,16 +104,21 @@ set "USE_BASE_IF_EMPTY=0"
 
 如果遇到启动问题，建议按以下顺序尝试：
 
-1. **使用调试脚本**：
+1. **测试脚本运行**：
+   - 双击 `test_script.bat`
+   - 确认.bat文件能在Windows上正常执行
+   - 如果看不到输出，说明.bat文件执行有问题
+
+2. **使用调试脚本**：
    - 双击 `start_service_debug.bat`
-   - 查看详细的诊断信息
+   - 查看详细的6步诊断信息
    - 根据错误信息进行修复
 
-2. **使用简化脚本**：
+3. **使用简化脚本**：
    - 双击 `start_service_simple.bat`
    - 跳过Conda环境，直接使用系统Python
 
-3. **检查环境**：
+4. **检查环境**：
    - 确认Python已安装：`python --version`
    - 确认依赖包已安装：`pip list`
 

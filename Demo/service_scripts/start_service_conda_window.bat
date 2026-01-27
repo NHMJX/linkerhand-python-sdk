@@ -1,8 +1,15 @@
 @echo off
-chcp 65001 >nul
+chcp 65001 >nul 2>&1
 REM 启动LinkerHand HTTP API服务（Conda环境专用 - 显示窗口）
 REM 此脚本专门用于Conda环境，支持自动激活Conda环境
 
+echo.
+echo ╔══════════════════════════════════════════════════════════╗
+echo ║        LinkerHand HTTP API服务 - Windows启动模式          ║
+echo ╚══════════════════════════════════════════════════════════╝
+echo.
+
+echo [准备] 初始化脚本环境...
 REM ============================================================
 REM Conda环境配置（请修改为您的Conda环境名）
 REM ============================================================
@@ -71,18 +78,28 @@ if defined CONDA_DEFAULT_ENV (
     REM 检查是否成功激活
     if not defined CONDA_DEFAULT_ENV (
         if %CONDA_ACTIVATED%==0 (
-            echo ============================================================
-            echo 警告: 无法自动激活Conda环境
-            echo ============================================================
             echo.
-            echo 请手动激活Conda环境，然后重新运行此脚本
+            echo ╔══════════════════════════════════════════════════════════╗
+            echo ║                     环境激活失败                          ║
+            echo ╚══════════════════════════════════════════════════════════╝
             echo.
-            echo 方法1: 在运行此脚本前先激活环境
-            echo   conda activate 环境名
+            echo ❌ 无法自动激活Conda环境
             echo.
-            echo 方法2: 修改此脚本，设置CONDA_ENV_NAME变量
-            echo   编辑此脚本，找到 "set CONDA_ENV_NAME=" 这一行
+            echo 🔧 解决方案：
+            echo.
+            echo 方法1: 手动激活环境后重新运行
+            echo   conda activate 您的环境名
+            echo   然后重新运行此脚本
+            echo.
+            echo 方法2: 修改脚本配置
+            echo   编辑此脚本，找到第10行: set "CONDA_ENV_NAME="
             echo   修改为: set "CONDA_ENV_NAME=您的环境名"
+            echo.
+            echo 方法3: 使用简化启动脚本
+            echo   运行 start_service_simple.bat（跳过Conda环境）
+            echo.
+            echo 方法4: 使用调试脚本诊断问题
+            echo   运行 start_service_debug.bat（详细诊断信息）
             echo.
             pause
             exit /b 1
@@ -90,15 +107,28 @@ if defined CONDA_DEFAULT_ENV (
     )
 )
 
-echo ============================================================
-echo 启动LinkerHand HTTP API服务
-echo ============================================================
+echo.
+echo ╔══════════════════════════════════════════════════════════╗
+echo ║                   启动服务...                           ║
+echo ╚══════════════════════════════════════════════════════════╝
 echo.
 echo 项目目录: %PROJECT_DIR%
 echo Conda环境: %CONDA_DEFAULT_ENV%
+echo 启动命令: python Demo\main_http.py
+echo.
+echo 🌟 服务启动信息：
+echo    LinkerHand API: http://localhost:8000
+echo    Exe Executor API: http://localhost:8001
+echo.
+echo ⚠️  按任意键停止服务并关闭窗口
 echo.
 
 REM 启动服务（显示窗口）
 python Demo\main_http.py
 
+echo.
+echo ╔══════════════════════════════════════════════════════════╗
+echo ║                     服务已停止                          ║
+echo ╚══════════════════════════════════════════════════════════╝
+echo.
 pause
