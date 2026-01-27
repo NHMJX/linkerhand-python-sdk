@@ -96,7 +96,7 @@ class ExecuteExeRequest(BaseModel):
     wait: Optional[bool] = True  # 是否等待程序执行完成，False为异步执行
 
 # 配置固定的.exe程序路径和参数（请根据实际情况修改）
-FIXED_EXE_PATH = r"C:\path\to\your\program.exe"  # 请修改为实际的.exe程序路径
+FIXED_EXE_PATH = r"C:\Users\jiaxu\Desktop\科技馆\Desktop_Qt_6_9_0_MSVC2022_64bit-Release\test\GrapeCli.exe"  # 请修改为实际的.exe程序路径
 FIXED_EXE_ARGS = ["robot"]  # 固定的命令行参数
 
 # 全局变量存储手部实例
