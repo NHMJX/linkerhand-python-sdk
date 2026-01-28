@@ -7,13 +7,24 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
-import subprocess
 import threading
-
+import subprocess
+import socket
 # 添加项目根目录到Python路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from LinkerHand.linker_hand_api import LinkerHandApi
+
+
+_proc_lock = threading.Lock()
+_current_proc: subprocess.Popen | None = None
+# 配置固定的.exe程序路径和参数（请根据实际情况修改）
+FIXED_EXE_PATH = r"C:\Users\jiaxu\Desktop\科技馆\Desktop_Qt_6_9_0_MSVC2022_64bit-Release\test\GrapeCli.exe"  # 请修改为实际的.exe程序路径
+# FIXED_EXE_PATH = r"D:\Weixin\Weixin.exe"
+FIXED_EXE_ARGS = ["robot"]  # 固定的命令行参数
+UDP_HOST = "0.0.0.0"
+UDP_PORT = 8001
+BUFFER_SIZE = 4096
 
 # 配置日志
 def setup_logging():
@@ -94,10 +105,6 @@ class FingerMoveRequest(BaseModel):
 class ExecuteExeRequest(BaseModel):
     timeout: Optional[int] = 300  # 超时时间（秒），默认5分钟
     wait: Optional[bool] = True  # 是否等待程序执行完成，False为异步执行
-
-# 配置固定的.exe程序路径和参数（请根据实际情况修改）
-FIXED_EXE_PATH = r"C:\Users\jiaxu\Desktop\科技馆\Desktop_Qt_6_9_0_MSVC2022_64bit-Release\test\GrapeCli.exe"  # 请修改为实际的.exe程序路径
-FIXED_EXE_ARGS = ["robot"]  # 固定的命令行参数
 
 # 全局变量存储手部实例
 hand_instance = None
@@ -349,29 +356,99 @@ async def exe_health_check():
         "exe_args": FIXED_EXE_ARGS
     }
 
+# def run_exe_server():
+#     """在独立线程中运行.exe执行服务"""
+#     logger.info("=" * 60)
+#     logger.info("Exe Executor API 服务启动")
+#     logger.info(f"服务地址: http://0.0.0.0:8001")
+#     logger.info(f"程序路径: {FIXED_EXE_PATH}")
+#     logger.info(f"固定参数: {FIXED_EXE_ARGS}")
+#     logger.info("=" * 60)
+    
+#     try:
+#         uvicorn.run(
+#             exe_app,
+#             host="0.0.0.0",
+#             port=8001,
+#             reload=False,
+#             log_level="info",
+#             access_log=True,
+#             log_config=None  # 使用我们自己的日志配置
+#         )
+#     except Exception as e:
+#         logger.error(f"Exe Executor服务启动失败: {str(e)}", exc_info=True)
+#     finally:
+#         logger.info("Exe Executor API 服务已停止")
+
+def run_exe_once_serial(sock: socket.socket, addr):
+    """短任务：串行执行；运行中则拒绝；执行完回 DONE <code>"""
+    global _current_proc
+
+    # 先在锁里判断是否正在运行 + 启动进程（锁内要短）
+    with _proc_lock:
+        if _current_proc is not None and _current_proc.poll() is None:
+            logger.warning("exe 正在运行，拒绝本次 RUN")
+            sock.sendto(b"BUSY", addr)
+            return
+
+        cmd = [FIXED_EXE_PATH] + FIXED_EXE_ARGS
+        # cmd = FIXED_EXE_PATH
+        logger.info(f"启动 exe: {cmd}")
+
+        _current_proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=subprocess.CREATE_NO_WINDOW
+        )
+
+    # 锁外等待结束（不影响 UDP 主循环）
+    try:
+        rc = _current_proc.wait()
+        logger.info(f"exe 执行完成，退出码: {rc}")
+        sock.sendto(f"DONE {rc}".encode("utf-8"), addr)
+    except Exception as e:
+        logger.error(f"等待 exe 结束时出错: {e}", exc_info=True)
+        sock.sendto(b"ERROR", addr)
+
+
 def run_exe_server():
-    """在独立线程中运行.exe执行服务"""
     logger.info("=" * 60)
-    logger.info("Exe Executor API 服务启动")
-    logger.info(f"服务地址: http://0.0.0.0:8001")
+    logger.info("Exe Executor UDP 服务启动（短任务串行）")
+    logger.info(f"监听地址: {UDP_HOST}:{UDP_PORT}")
     logger.info(f"程序路径: {FIXED_EXE_PATH}")
     logger.info(f"固定参数: {FIXED_EXE_ARGS}")
     logger.info("=" * 60)
-    
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
     try:
-        uvicorn.run(
-            exe_app,
-            host="0.0.0.0",
-            port=8001,
-            reload=False,
-            log_level="info",
-            access_log=True,
-            log_config=None  # 使用我们自己的日志配置
-        )
+        sock.bind((UDP_HOST, UDP_PORT))
+        logger.info("UDP 服务已启动，等待指令...")
+
+        while True:
+            data, addr = sock.recvfrom(BUFFER_SIZE)
+            msg = data.decode("utf-8", errors="ignore").strip().upper()
+
+            if msg == "RUN":
+                # 子线程执行：UDP 不阻塞
+                threading.Thread(
+                    target=run_exe_once_serial,
+                    args=(sock, addr),
+                    daemon=True
+                ).start()
+                sock.sendto(b"ACCEPTED", addr)  # 立刻确认已接收
+            elif msg == "PING":
+                sock.sendto(b"PONG", addr)
+            else:
+                sock.sendto(b"UNKNOWN", addr)
+
     except Exception as e:
-        logger.error(f"Exe Executor服务启动失败: {str(e)}", exc_info=True)
+        logger.error(f"UDP 服务异常: {e}", exc_info=True)
     finally:
-        logger.info("Exe Executor API 服务已停止")
+        sock.close()
+        logger.info("Exe Executor UDP 服务已停止")
+
 
 if __name__ == "__main__":
     # 启动两个服务器
