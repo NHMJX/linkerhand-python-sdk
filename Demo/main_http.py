@@ -143,7 +143,7 @@ async def root():
         }
     }
 
-@app.post("/hold_pen")
+@app.post("/hold_pen", status_code=200)
 async def hold_pen():
     """执行握笔动作"""
     try:
@@ -171,7 +171,7 @@ async def hold_pen():
         logger.error(f"执行握笔动作失败: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"执行握笔动作失败: {str(e)}")
 
-@app.post("/open_hand")
+@app.post("/open_hand", status_code=200)
 async def open_hand():
     """打开手部"""
     try:
@@ -186,7 +186,7 @@ async def open_hand():
         logger.error(f"执行打开手部动作失败: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"执行打开手部动作失败: {str(e)}")
 
-@app.post("/close_hand")
+@app.post("/close_hand", status_code=200)
 async def close_hand():
     """关闭手部"""
     try:
