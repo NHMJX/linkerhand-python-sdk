@@ -3,7 +3,7 @@ REM ===== 设置编码，避免中文路径炸 =====
 chcp 65001 >nul
 
 REM ===== 初始化 conda =====
-call "C:\miniconda\Scripts\activate.bat"
+call "D:\miniconda3\Scripts\activate.bat"
 
 REM ===== 激活虚拟环境 =====
 call conda activate hand_o6
