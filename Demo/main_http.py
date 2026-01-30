@@ -427,17 +427,25 @@ def run_exe_server():
         logger.info("UDP 服务已启动，等待指令...")
 
         while True:
-            data, addr = sock.recvfrom(BUFFER_SIZE)
+            try:
+                data, addr = sock.recvfrom(BUFFER_SIZE)
+            except ConnectionResetError as e:
+                if getattr(e, "winerror", None) == 10054:
+                    logger.warning("UDP 对端关闭 (WinError 10054)，忽略")
+                    continue
+                else:
+                    raise
+
             msg = data.decode("utf-8", errors="ignore").strip().upper()
 
             if msg == "RUN":
-                # 子线程执行：UDP 不阻塞
                 threading.Thread(
                     target=run_exe_once_serial,
                     args=(sock, addr),
                     daemon=True
                 ).start()
-                sock.sendto(b"ACCEPTED", addr)  # 立刻确认已接收
+                sock.sendto(b"ACCEPTED", addr)
+
             elif msg == "PING":
                 sock.sendto(b"PONG", addr)
             else:
